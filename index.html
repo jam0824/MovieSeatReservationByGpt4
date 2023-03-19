@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>映画館座席予約システム</title>
+    <style>
+        .seat {
+            width: 20px;
+            height: 20px;
+            background-color: gray;
+            display: inline-block;
+            margin: 2px;
+            text-align: center;
+            line-height: 20px;
+            font-size: 12px;
+        }
+
+        .reserved {
+            background-color: blue;
+        }
+
+        .selected {
+            background-color: orange;
+        }
+
+        .reservation-info {
+            margin-top: 20px;
+        }
+
+        .reservation-info input,
+        .reservation-info select {
+            margin-bottom: 5px;
+        }
+
+        .output {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>映画館座席予約システム</h1>
+    <p>座席をクリックして予約したい席を選択してください。</p>
+    <p>料金: 子供 500円、大人 1000円、シニア 800円</p>
+    <p>割引: 21時以降 2割引、割引券 1割引、水曜日シニアデー 2割引 (割引は併用不可)</p>
+    <div id="seats"></div>
+    <div class="reservation-info">
+        <input type="text" id="selectedSeat" readonly>
+        <select id="ageType">
+            <option value="child">子供</option>
+            <option value="adult">大人</option>
+            <option value="senior">シニア</option>
+        </select>
+        <input type="date" id="datePicker">
+        <select id="timeSelect">
+        </select>
+        <select id="discountTicket">
+            <option value="none">割引券なし</option>
+            <option value="available">割引券あり</option>
+        </select>
+        <input type="text" id="price" readonly>
+        <button id="reserveButton">予約</button>
+    </div>
+    <div class="output">
+        <p id="outputMessage"></p>
+    </div>
+
+    <script>
+        const rows = ['A', 'B', 'C', 'D', 'E', 'F'];
+        const columns = 10;
+
+        const seats = document.getElementById('seats');
+        const selectedSeat = document.getElementById('selectedSeat');
+        const ageType = document.getElementById('ageType');
+        const datePicker = document.getElementById('datePicker');
+        const timeSelect = document.getElementById('timeSelect');
+        const discountTicket = document.getElementById('discountTicket');
+        const price = document.getElementById('price');
+        const reserveButton = document.getElementById('reserveButton');
+        const outputMessage = document.getElementById('outputMessage');
+
+        function createSeats() {
+            for (const row of rows) {
+              for (let column = 1; column <= columns; column++) {
+                    const seat = document.createElement('div');
+                    seat.className = 'seat';
+                    seat.id = `${row}${column}`;
+                    seat.textContent = `${row}${column}`;
+                    seat.addEventListener('click', selectSeat);
+                    seats.appendChild(seat);
+                }
+                seats.appendChild(document.createElement('br'));
+            }
+        }
+
+        function selectSeat(event) {
+            const seat = event.target;
+            if (!seat.classList.contains('reserved')) {
+                seat.classList.toggle('selected');
+                selectedSeat.value = seat.classList.contains('selected') ? seat.id : '';
+                calculatePrice();
+            }
+        }
+
+        function createTimeOptions() {
+            for (let hour = 10; hour <= 22; hour++) {
+                const option = document.createElement('option');
+                option.value = hour;
+                option.textContent = `${hour}:00`;
+                timeSelect.appendChild(option);
+            }
+        }
+
+        function calculatePrice() {
+            const selectedAge = ageType.value;
+            const selectedTime = parseInt(timeSelect.value);
+            const selectedDiscount = discountTicket.value;
+            const selectedDate = new Date(datePicker.value);
+
+            let basePrice;
+
+            if (selectedAge === 'child') {
+                basePrice = 500;
+            } else if (selectedAge === 'adult') {
+                basePrice = 1000;
+            } else {
+                basePrice = 800;
+            }
+
+            let discountRate = 0;
+
+            if (selectedDiscount === 'available') {
+                discountRate = Math.max(discountRate, 0.1);
+            }
+
+            if (selectedTime >= 21) {
+                discountRate = Math.max(discountRate, 0.2);
+            }
+
+            if (selectedDate.getDay() === 3 && selectedAge === 'senior') {
+                discountRate = Math.max(discountRate, 0.2);
+            }
+
+            price.value = Math.round(basePrice * (1 - discountRate));
+        }
+
+        function reserve() {
+            const seatId = selectedSeat.value;
+            if (!seatId) {
+                outputMessage.textContent = '席を選択してください。';
+                return;
+            }
+
+            const seat = document.getElementById(seatId);
+            seat.classList.remove('selected');
+            seat.classList.add('reserved');
+            seat.removeEventListener('click', selectSeat);
+
+            outputMessage.textContent = `予約が完了しました。${seatId} ${datePicker.value} ${timeSelect.value}:00 ${ageType.options[ageType.selectedIndex].textContent} 割引券: ${discountTicket.options[discountTicket.selectedIndex].textContent} 料金: ${price.value}円`;
+
+            selectedSeat.value = '';
+            price.value = '';
+        }
+
+        ageType.addEventListener('change', calculatePrice);
+        datePicker.addEventListener('change', calculatePrice);
+        timeSelect.addEventListener('change', calculatePrice);
+        discountTicket.addEventListener('change', calculatePrice);
+        reserveButton.addEventListener('click', reserve);
+
+        createSeats();
+        createTimeOptions();
+        calculatePrice();
+    </script>
+</body>
+</html>
+
